@@ -1,20 +1,8 @@
 <template>
   <div class="d-flex justify-center w-100">
     <div style="max-width: 1080px; width: 100%; min-height: 100vh">
-      <div class="d-flex justify-center">
-        <div class="d-flex align-center">
-          <v-btn variant="outlined" color="pink" icon="">1</v-btn>
-          <div style="height: 3px; width: 40px; background: #e91e63"></div>
-          <v-btn variant="outlined" color="pink" icon="">2</v-btn>
-          <div style="height: 3px; width: 40px; background: #e91e63"></div>
-          <v-btn variant="outlined" color="pink" icon="">3</v-btn>
-          <div style="height: 3px; width: 40px; background: #e91e63"></div>
-          <v-btn variant="outlined" color="pink" icon="">4</v-btn>
-        </div>
-      </div>
-
       <v-row>
-        <v-col cols="12" md="7" v-if="step == 0">
+        <v-col cols="12" md="7" v-if="step == 0" class="px-8">
           <v-slide-group v-model="selectedIndex" class="mt-4">
             <v-slide-group-item
               v-for="(category, index) in categories"
@@ -42,15 +30,31 @@
             </v-slide-group-item>
           </v-slide-group>
 
-          <div>
+          <v-skeleton-loader
+            v-if="loading"
+            class="my-4"
+            type="card"
+          ></v-skeleton-loader>
+          <v-skeleton-loader
+            v-if="loading"
+            class="my-4"
+            type="card"
+          ></v-skeleton-loader>
+          <v-skeleton-loader
+            v-if="loading"
+            class="my-4"
+            type="card"
+          ></v-skeleton-loader>
+
+          <div v-else>
             <v-card
               style="cursor: pointer; max-height: 160px"
               v-for="service in services"
               class="pa-4 my-4 d-flex justify-space-between align-center"
               :style="
                 checkItemOnCart(service)
-                  ? 'border: 2px solid #e91e63; background-color:   #ffcccc '
-                  : ''
+                  ? 'border: 2px solid #e91e63; background-color:  #ffcccc '
+                  : 'border: 1px solid #d9d9d9'
               "
               variant="outlined"
               rounded="lg"
@@ -122,12 +126,38 @@
           </div>
 
           <v-row>
+            <v-col cols="4">
+              <v-skeleton-loader
+                v-if="loading"
+                class="my-4"
+                type="card"
+              ></v-skeleton-loader>
+            </v-col>
+
+            <v-col cols="4">
+              <v-skeleton-loader
+                v-if="loading"
+                class="my-4"
+                type="card"
+              ></v-skeleton-loader>
+            </v-col>
+
+            <v-col cols="4">
+              <v-skeleton-loader
+                v-if="loading"
+                class="my-4"
+                type="card"
+              ></v-skeleton-loader>
+            </v-col>
+          </v-row>
+
+          <v-row>
             <v-col v-for="worker in workersByServices" cols="12" md="4">
               <v-card
                 :style="
                   checkSelectedWorker(worker)
                     ? 'border: 2px solid #e91e63; background-color:  #e6e6e6 '
-                    : ''
+                    : 'border: 1px solid #d9d9d9'
                 "
                 @click="selectedWorker = worker"
                 variant="outlined"
@@ -146,8 +176,8 @@
                 />
                 <p
                   class="mt-1"
-                  style="font-size: 16px;  font-weight: 550"
-                  :style=" checkSelectedWorker(worker) ? 'color: black' : ''"
+                  style="font-size: 16px; font-weight: 550"
+                  :style="checkSelectedWorker(worker) ? 'color: black' : ''"
                 >
                   {{ worker.firstName }}
                 </p>
@@ -156,9 +186,92 @@
           </v-row>
         </v-col>
 
+        <v-col cols="12" md="7" v-if="step == 2">
+          <div style="font-size: 24px; font-weight: 550">Цаг сонголт</div>
+          <div class="d-flex justify-space-between align-center">
+            <div style="font-weight: 550;">
+              <span>{{ weekdays.year }}-оны</span>
+              <span class="ml-2">{{ weekdays.month }} сар</span>
+              <span></span>
+            </div>
+            <div class="d-flex">
+              <v-btn
+                @click="getPreviousWeekDays()"
+                variant="text"
+                size="small"
+                class="mx-2"
+                icon="mdi-chevron-left"
+              ></v-btn>
+              <v-btn
+                @click="getNextWeekDays()"
+                variant="text"
+                size="small"
+                class="mx-2"
+                icon="mdi-chevron-right"
+              ></v-btn>
+            </div>
+          </div>
+          <div class="d-flex justify-space-around mt-4">
+            <v-btn
+              @click="
+                selectedDay = day;
+                fetchPossibleTimes();
+              "
+              icon=""
+              v-for="day in weekdays.days"
+              variant="outlined"
+              style="border: 2px solid #d9d9d9"
+              size="large"
+              :style="
+                checkSelectedDay(day)
+                  ? 'border: 2px solid #e91e63; background-color:  #e6e6e6'
+                  : ''
+              "
+            >
+              {{ day.day }}
+            </v-btn>
+          </div>
+          <v-row>
+            <v-col cols="6" md="3" v-for="i in 12" v-if="loading">
+              <v-skeleton-loader class="my-4" type="card"></v-skeleton-loader>
+            </v-col>
+
+            <v-card
+              variant="outlined"
+              v-if="!loading && possibleTimes.length == 0"
+              class="w-100 d-flex justify-center align-center mt-8 mx-8"
+              style="min-height: 400px; border: 1px solid #d9d9d9"
+            >
+              Уучлаарай хараахан цаг алга байна.
+            </v-card>
+
+            <v-col
+              cols="6"
+              md="3"
+              v-for="time in possibleTimes"
+              class="mt-4"
+              v-if="!loading && possibleTimes.length > 0"
+            >
+              <v-card
+                @click="selectedTime = time"
+                :style="
+                  checkSelectedTime(time)
+                    ? 'border: 2px solid #e91e63; background-color:  #e6e6e6 '
+                    : 'border: 1px solid #d9d9d9;'
+                "
+                variant="outlined"
+                class="d-flex justify-center align-center"
+                style="min-height: 100px"
+              >
+                {{ time.time }}
+              </v-card>
+            </v-col>
+          </v-row>
+        </v-col>
+
         <v-col cols="12" md="5">
           <v-card
-            style="min-height: 400px"
+            style="min-height: 400px; border: 1px solid #d9d9d9"
             rounded="lg"
             class="mt-4 pa-4 d-flex justify-space-between flex-column"
             variant="outlined"
@@ -216,7 +329,11 @@
               </v-col>
               <v-col cols="6">
                 <v-btn
-                  :disabled="servicesCart.length == 0"
+                  :disabled="
+                    (servicesCart.length == 0 && step == 0) ||
+                    (!selectedWorker && step == 1) ||
+                    (!selectedTime && step == 2)
+                  "
                   rounded="lg"
                   color="pink"
                   @click="nextStep()"
@@ -241,6 +358,7 @@ import axios from "axios";
 import { useDisplay } from "vuetify";
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import moment from "moment";
 const { mdAndUp } = useDisplay();
 
 const router = useRouter();
@@ -248,6 +366,8 @@ const route = useRoute();
 
 const config = useRuntimeConfig();
 const baseURL = config.public.baseURL;
+
+const loading = ref<any>(true);
 const step = ref<any>(0);
 const categories = ref<any>([]);
 const selectedIndex = ref<any>(0);
@@ -256,23 +376,38 @@ const services = ref<any>([]);
 const servicesCart = ref<any>([]);
 const workersByServices = ref<any>([]);
 const selectedWorker = ref<any>("");
+const possibleTimes = ref<any>([]);
+const selectedTime = ref<any>("");
+const selectedDay = ref<any>("");
+const schedule = ref<any>("");
+
+const weekdays = ref<any>({
+  year: "",
+  month: "",
+  days: [],
+});
 
 const fetchCategories = async () => {
   try {
+    loading.value = true;
     const response = await axios.post(`${baseURL}/serviceCategories/list`, {});
     if (response.status === 200) {
       categories.value = response.data.rows;
       selectedCategory.value = response.data.rows[0]._id;
+      loading.value = false;
     } else {
       console.log("jiijii");
+      loading.value = false;
     }
   } catch (err) {
+    loading.value = false;
     console.log(err);
   }
 };
 
 const fetchWorkersByGivenService = async () => {
   try {
+    loading.value = true;
     let services: any = [];
     servicesCart.value.map((service: any) => {
       services.push(service._id);
@@ -286,16 +421,20 @@ const fetchWorkersByGivenService = async () => {
     );
     if (response.status === 200) {
       workersByServices.value = response.data;
+      loading.value = false;
     } else {
+      loading.value = false;
       console.log("Jiijii");
     }
   } catch (err) {
+    loading.value = false;
     console.log(err);
   }
 };
 
 const fetchServices = async () => {
   try {
+    loading.value = true;
     const filter = {
       category: selectedCategory.value,
     };
@@ -304,10 +443,70 @@ const fetchServices = async () => {
     });
     if (response.status === 200) {
       services.value = response.data.rows;
+      loading.value = false;
     } else {
       console.log("jiji");
+      loading.value = false;
     }
   } catch (err) {
+    loading.value = false;
+    console.log(err);
+  }
+};
+
+const fetchPossibleTimes = async () => {
+  try {
+    possibleTimes.value = [];
+    loading.value = true;
+    let totalDuration = 0;
+    servicesCart.value.map((service: any) => {
+      totalDuration += service.duration;
+    });
+    const query = {
+      worker: selectedWorker.value._id,
+      duration: totalDuration,
+      dateTitle: selectedDay.value.date,
+    };
+    const response = await axios.post(
+      `${baseURL}/timeRequests/getPossibleTimes`,
+      query
+    );
+    if (response.status === 200) {
+      possibleTimes.value = response.data.rows;
+      schedule.value = response.data.schedule;
+      loading.value = false;
+    } else {
+      console.log("jiijii");
+      loading.value = false;
+    }
+  } catch (err) {
+    loading.value = false;
+    console.log(err);
+  }
+};
+
+const createTimeReserve = async () => {
+  try {
+    let services: any = [];
+    servicesCart.value.map((service: any) => {
+      services.push(service._id);
+    });
+
+    const query = {
+      customer: "67a228bea4d6cb41926e2ea2",
+      services: services,
+      schedule: "67bd91022353aa18f2a4f216",
+      startTime: selectedTime.value.time,
+    };
+
+    const response = await axios.post(`${baseURL}/timeReserves/create`, query);
+    if (response.status === 201) {
+      window.alert("Амжилттай");
+    } else {
+      console.log("jiijii");
+    }
+  } catch (err) {
+    loading.value = false;
     console.log(err);
   }
 };
@@ -316,6 +515,7 @@ const addToServiceCart = (service: any) => {
   try {
     servicesCart.value.push(service);
   } catch (err) {
+    loading.value = false;
     console.log(err);
   }
 };
@@ -336,9 +536,50 @@ const nextStep = async () => {
     step.value++;
     if (step.value == 1) {
       await fetchWorkersByGivenService();
+    } else if (step.value == 2) {
+      // await fetchPossibleTimes();
+    } else if (step.value == 3) {
+      await createTimeReserve();
     }
   } catch (err) {
     console.log(err);
+  }
+};
+
+const getNextWeekDays = () => {
+  possibleTimes.value = [];
+  selectedDay.value = {};
+  const now = moment(weekdays.value.days[0].date).add(7, "days");
+  let startDate;
+  startDate = now.startOf("week").add(1, "days");
+  weekdays.value.days = [];
+  weekdays.value.year = now.format("YYYY");
+  weekdays.value.month = now.format("MM");
+
+  for (let i = 0; i < 7; i++) {
+    weekdays.value.days.push({
+      day: startDate.clone().add(i, "days").format("DD"),
+      dayName: startDate.clone().add(i, "days").format("dddd"),
+      date: startDate.clone().add(i, "days").format("YYYY-MM-DD"),
+    });
+  }
+};
+
+const getPreviousWeekDays = () => {
+  possibleTimes.value = [];
+  selectedDay.value = {};
+  const now = moment(weekdays.value.days[0].date).subtract(7, "days");
+  let startDate;
+  startDate = now.startOf("week").add(1, "days");
+  weekdays.value.days = [];
+  weekdays.value.year = now.format("YYYY");
+  weekdays.value.month = now.format("MM");
+  for (let i = 0; i < 7; i++) {
+    weekdays.value.days.push({
+      day: startDate.clone().add(i, "days").format("DD"),
+      dayName: startDate.clone().add(i, "days").format("dddd"),
+      date: startDate.clone().add(i, "days").format("YYYY-MM-DD"),
+    });
   }
 };
 
@@ -360,9 +601,39 @@ const checkSelectedWorker = (worker: any) => {
   return false;
 };
 
+const checkSelectedDay = (day: any) => {
+  if (selectedDay.value.date == day.date) {
+    return true;
+  }
+  return false;
+};
+
+const checkSelectedTime = (time: any) => {
+  if (selectedTime.value.time == time.time) {
+    return true;
+  }
+  return false;
+};
+
 onMounted(async () => {
   await fetchCategories();
   await fetchServices();
+
+  let today = moment();
+  let startDate;
+
+  startDate = moment().startOf("week").add(1, "days");
+
+  weekdays.value.year = today.format("YYYY");
+  weekdays.value.month = today.format("MM");
+
+  for (let i = 0; i < 7; i++) {
+    weekdays.value.days.push({
+      day: startDate.clone().add(i, "days").format("DD"),
+      dayName: startDate.clone().add(i, "days").format("dddd"),
+      date: startDate.clone().add(i, "days").format("YYYY-MM-DD"),
+    });
+  }
 });
 </script>
 
