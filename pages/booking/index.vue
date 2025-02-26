@@ -495,7 +495,7 @@ const createTimeReserve = async () => {
     const query = {
       customer: "67a228bea4d6cb41926e2ea2",
       services: services,
-      schedule: "67bd91022353aa18f2a4f216",
+      schedule: schedule.value,
       startTime: selectedTime.value.time,
     };
 
