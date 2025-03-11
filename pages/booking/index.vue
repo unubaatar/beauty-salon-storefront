@@ -95,7 +95,10 @@
 
               <v-btn
                 v-if="!checkItemOnCart(service)"
-                @click="addToServiceCart(service)"
+                @click="
+                  currentService = service;
+                  addToServiceCart(service);
+                "
                 elevation="0"
                 variant="tonal"
                 size="small"
@@ -159,7 +162,11 @@
                     ? 'border: 2px solid #e91e63; background-color:  #e6e6e6 '
                     : 'border: 1px solid #d9d9d9'
                 "
-                @click="selectedWorker = worker"
+                @click="
+                  selectedWorker = worker;
+                  selectWorker();
+                  showAddFeeDialog = true;
+                "
                 variant="outlined"
                 class="pa-4 d-flex justify-center align-center flex-column"
                 style="min-height: 150px; cursor: pointer"
@@ -189,7 +196,7 @@
         <v-col cols="12" md="7" v-if="step == 2">
           <div style="font-size: 24px; font-weight: 550">Цаг сонголт</div>
           <div class="d-flex justify-space-between align-center">
-            <div style="font-weight: 550;">
+            <div style="font-weight: 550">
               <span>{{ weekdays.year }}-оны</span>
               <span class="ml-2">{{ weekdays.month }} сар</span>
               <span></span>
@@ -293,18 +300,38 @@
                 class="my-4 d-flex justify-space-between"
               >
                 <div>
-                  <p style="font-size: 16px">{{ service.title }}</p>
+                  <p style="font-size: 16px">
+                    {{ service.title }}
+                    <span v-if="service?.selectedVariant"
+                      >- {{ service.selectedVariant.title }}</span
+                    >
+                  </p>
                   <div style="font-size: 14px; color: gray">
                     <v-icon>mdi-clock</v-icon>
-                    <span class="mx-1">{{ service.duration }}</span
+                    <span class="mx-1">{{
+                      service?.selectedVariant
+                        ? service.selectedVariant.duration
+                        : service.duration
+                    }}</span
                     >минут
                   </div>
                 </div>
                 <div>
                   <p style="font-weight: 550">
-                    {{ service.price.toLocaleString() }}₮
+                    {{
+                      service?.selectedVariant
+                        ? service.selectedVariant.price.toLocaleString()
+                        : service.price.toLocaleString()
+                    }}₮
                   </p>
                 </div>
+              </article>
+              <article
+                class="mt-4 d-flex justify-space-between"
+                v-if="totalAddPriceAmount > 0"
+              >
+                <p>Нэмэлт төлбөр:</p>
+                <span>{{ totalAddPriceAmount.toLocaleString() }}</span>
               </article>
               <article class="mt-4" style="font-size: 20px">
                 Нийт:
@@ -346,6 +373,54 @@
         </v-col>
       </v-row>
     </div>
+
+    <v-dialog v-model="showVariantDialog" width="500">
+      <v-card class="pa-4">
+        <v-card
+          class="pa-4 my-2 d-flex justify-space-between align-center"
+          variant="outlined"
+          style="border: 1px solid #d9d9d9"
+          v-for="variant in currentService.variants"
+        >
+          <div style="font-weight: 550">{{ variant.title }}</div>
+          <div>{{ variant.duration }} минут</div>
+          <div>{{ variant.price.toLocaleString() }}₮</div>
+          <v-btn
+            @click="addServiceVariantCart(currentService, variant)"
+            variant="tonal"
+            size="small"
+            elevation="0"
+            icon="mdi-plus"
+            rounded="lg"
+          ></v-btn>
+        </v-card>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog persistent v-model="showAddFeeDialog" width="500">
+      <v-card class="pa-4">
+        <div
+          v-for="item in additionalPrices"
+          class="mb-2 d-flex justify-space-between"
+        >
+          <span>{{ item.title }}</span>
+          <span>{{ item.addPrice.toLocaleString() }}</span>
+        </div>
+
+        <div class="d-flex justify-end">
+          <v-btn
+            class="mr-2"
+            @click="
+              selectedWorker = {};
+              showAddFeeDialog = false;
+              additionalPrices = [];
+            "
+            >Хаах</v-btn
+          >
+          <v-btn @click="verifyAddPrice()">Зөвшөөрөх</v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -380,6 +455,11 @@ const possibleTimes = ref<any>([]);
 const selectedTime = ref<any>("");
 const selectedDay = ref<any>("");
 const schedule = ref<any>("");
+const currentService = ref<any>({});
+const showVariantDialog = ref<any>(false);
+const additionalPrices = ref<any>([]);
+const showAddFeeDialog = ref<any>(false);
+const totalAddPriceAmount = ref<any>(0);
 
 const weekdays = ref<any>({
   year: "",
@@ -460,7 +540,9 @@ const fetchPossibleTimes = async () => {
     loading.value = true;
     let totalDuration = 0;
     servicesCart.value.map((service: any) => {
-      totalDuration += service.duration;
+      totalDuration += service?.selectedVariant
+        ? service.selectedVariant.duration
+        : service.duration;
     });
     const query = {
       worker: selectedWorker.value._id,
@@ -489,14 +571,37 @@ const createTimeReserve = async () => {
   try {
     let services: any = [];
     servicesCart.value.map((service: any) => {
-      services.push(service._id);
+      if (service?.selectedVariant) {
+        services.push({
+          service: service._id,
+          variant: service.selectedVariant._id,
+          price: service.selectedVariant.price,
+        });
+      } else {
+        services.push({
+          service: service._id,
+          price: service.price,
+        });
+      }
     });
+
+    const tempAdditionalPrices: any = [];
+
+    additionalPrices.value.map((addPrice: any) => {
+      tempAdditionalPrices.push({
+        service: addPrice._id,
+        price: addPrice.addPrice
+      });
+    });
+
+
 
     const query = {
       customer: "67a228bea4d6cb41926e2ea2",
       services: services,
       schedule: schedule.value,
       startTime: selectedTime.value.time,
+      additionalPrices: tempAdditionalPrices
     };
 
     const response = await axios.post(`${baseURL}/timeReserves/create`, query);
@@ -513,7 +618,11 @@ const createTimeReserve = async () => {
 
 const addToServiceCart = (service: any) => {
   try {
-    servicesCart.value.push(service);
+    if (service.variants.length > 0) {
+      showVariantDialog.value = true;
+    } else {
+      servicesCart.value.push(service);
+    }
   } catch (err) {
     loading.value = false;
     console.log(err);
@@ -529,6 +638,45 @@ const removeItemFromServiceCart = (service: any) => {
   } else {
     console.log("not found in cart");
   }
+};
+
+const addServiceVariantCart = (service: any, variant: any) => {
+  servicesCart.value.push(service);
+  service.selectedVariant = variant;
+  showVariantDialog.value = false;
+};
+
+const selectWorker = async () => {
+  try {
+    let servicesId: any = [];
+    servicesCart.value.map((service: any) => {
+      servicesId.push(service._id);
+    });
+    const query = {
+      services: servicesId,
+      workerLevel: selectedWorker.value.level,
+    };
+    const response = await axios.post(
+      `${baseURL}/workerLevels/getAdditionalFee`,
+      query
+    );
+    if (response.status === 200) {
+      additionalPrices.value = response.data;
+    } else {
+      console.log("jiijii");
+    }
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+const verifyAddPrice = () => {
+  let sum = 0;
+  for (let price of additionalPrices.value) {
+    sum += price.addPrice;
+  }
+  totalAddPriceAmount.value = sum;
+  showAddFeeDialog.value = false;
 };
 
 const nextStep = async () => {
@@ -588,9 +736,15 @@ const checkItemOnCart = (service: any) => {
 };
 
 const totalPrice = computed(() => {
-  let sum = servicesCart.value.reduce((accumulator: any, service: any) => {
-    return accumulator + service.price;
-  }, 0);
+  let sum = 0;
+  for (let item of servicesCart.value) {
+    if (item?.selectedVariant) {
+      sum += item.selectedVariant.price;
+    } else {
+      sum += item.price;
+    }
+  }
+  sum += totalAddPriceAmount.value;
   return sum;
 });
 
